@@ -134,8 +134,10 @@ void MainWindow::importChallongeFile( const QString& file )
 
     QStringList list_tournaments = Database::tournaments();
     list_tournaments.push_front("new...");
+
     QString session_tournament_name = QInputDialog::getItem( this,
-        "Tournament", "Choose Session Tournament", list_tournaments );
+        "Tournament", "Choose Session Tournament",
+        list_tournaments, list_tournaments.size()-1 );
 
     if ( session_tournament_name.compare( "new..." ) == 0 )
     {

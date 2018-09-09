@@ -38,5 +38,5 @@ HEADERS  += mainwindow.h \
 
 FORMS    += mainwindow.ui
 
-RESOURCES     = competetivestatistics.qrc
+RESOURCES     = ./CompetitiveStatistics.qrc
 

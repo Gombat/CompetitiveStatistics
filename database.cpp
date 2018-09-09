@@ -25,6 +25,10 @@ QString Database::playerNameReplacements(const QString& player_name)
         return "cSnipe";
     if ( player_name.compare("affe!", Qt::CaseInsensitive) == 0)
         return "affe";
+    if ( player_name.compare("Desselbigen Dods", Qt::CaseInsensitive) == 0)
+        return "Dods";
+    if ( player_name.compare("Angelos", Qt::CaseInsensitive) == 0)
+        return "Gosu";
     else
         return player_name;
 }
