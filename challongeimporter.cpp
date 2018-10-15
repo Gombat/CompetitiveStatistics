@@ -22,7 +22,7 @@ void ChallongeImporter::errMsg( const QString& msg ) const
     return;
 }
 
-void ChallongeImporter::importFile( const QString& path, const QString& session_tournament_name) const
+void ChallongeImporter::importFile( const QString& path, const QString& session_tournament_name, const QMap<QString, QString>& gamertag_replacements) const
 {
     QFile f(path);
     if ( !f.open(QFile::ReadOnly | QFile::Text)) return;
@@ -31,14 +31,15 @@ void ChallongeImporter::importFile( const QString& path, const QString& session_
     QString text = in.readAll();
     //qDebug() << f.size() << text;
 
-    import( text, session_tournament_name );
+    import( text, session_tournament_name, gamertag_replacements );
 }
 
-void ChallongeImporter::import( const QString& data, const QString& session_tournament_name) const
+void ChallongeImporter::import( const QString& data, const QString& session_tournament_name,
+                                const QMap<QString, QString>& gamertag_replacements) const
 {
     if ( QFile(data).exists() )
     {
-        importFile( data, session_tournament_name );
+        importFile( data, session_tournament_name, gamertag_replacements );
         return;
     }
 
@@ -88,20 +89,22 @@ void ChallongeImporter::import( const QString& data, const QString& session_tour
 
     importMatches(tournament, session_date, session_name,
                   session_challonge_id, session_tournament_id,
-                  session_url, player_data, match_data);
+                  session_url, gamertag_replacements,
+                  player_data, match_data);
 }
 
 void ChallongeImporter::importMatches(const QJsonObject& tournament,
     const QString& session_date, const QString& session_name,
     const int session_challonge_id, const int session_tournament_id,
-    const QString& session_url, QMap<int,PlayerData>& player_data,
+    const QString& session_url, const QMap<QString, QString>& gamertag_replacements,
+    QMap<int,PlayerData>& player_data,
     std::vector<MatchData>& match_data) const
 {
-    importParticipants_p( tournament, player_data );
+    importParticipants_p( tournament, player_data, gamertag_replacements );
 
     const QJsonArray matches = tournament["matches"].toArray();
 
-    importMatches_p( matches, match_data, player_data );
+    importMatches_p( matches, match_data, player_data, gamertag_replacements );
 
     // export immediately?
     exportParticipants_p( player_data );
@@ -120,12 +123,13 @@ void ChallongeImporter::importMatches(const QJsonObject& tournament,
             match_date.p1.tag, match_date.p1.name,
             match_date.p2.tag, match_date.p2.name,
             match_date.round, match_date.suggested_play_order,
-            match_date.p1_wins, match_date.p2_wins );
+            match_date.p1_wins, match_date.p2_wins);
     }
 }
 
 void ChallongeImporter::importParticipants_p(const QJsonObject& tournament,
-    QMap<int,PlayerData>& player_data) const
+    QMap<int,PlayerData>& player_data,
+    const QMap<QString, QString>& gamertag_replacements) const
 {
     const QJsonArray participants = tournament["participants"].toArray();
     for ( int i = 0; i < participants.count(); i++ )
@@ -135,8 +139,12 @@ void ChallongeImporter::importParticipants_p(const QJsonObject& tournament,
         QString player_name = participant["name"].toString();
         QString player_tag = participant["name"].toString().toLower();
 
-        player_name = Database::playerNameReplacements(player_name);
-        player_tag = Database::playerNameReplacements(player_tag);
+        player_name = Database::gamerTagReplacements(gamertag_replacements, player_name);
+        player_tag = Database::gamerTagReplacements(gamertag_replacements, player_tag).toLower();
+
+        if ( player_tag.compare( "angelos", Qt::CaseInsensitive ) == 0 )
+            int a = 0;
+
         if ( player_tag.compare( "bye", Qt::CaseInsensitive ) == 0 )
             continue;
 
@@ -157,11 +165,18 @@ void ChallongeImporter::importParticipants_p(const QJsonObject& tournament,
                            group_player_ids);
         }
     }
+
+//    for (auto it = player_data.begin(); it != player_data.end(); ++it)
+//    {
+//        it->tag = Database::gamerTagReplacements(gamertag_replacements, it->tag).toLower();
+//        it->name = Database::gamerTagReplacements(gamertag_replacements, it->name);
+//    }
 }
 
 void ChallongeImporter::importMatches_p( const QJsonArray matches,
     std::vector<MatchData>& match_data,
-    const QMap<int,PlayerData>& player_data ) const
+    const QMap<int,PlayerData>& player_data,
+    const QMap<QString, QString>& gamertag_replacements) const
 {
     for ( int i = 0; i < matches.count(); i++ )
     {
@@ -228,11 +243,19 @@ void ChallongeImporter::importMatches_p( const QJsonArray matches,
         }
 
         match_data.push_back( MatchData( round,
-            suggested_play_order,
+            static_cast<quint32>(suggested_play_order),
             player_p(player_data, p1_id),
             player_p(player_data, p2_id),
             p1wins, p2wins ) );
     }
+
+//    for (auto it = match_data.begin(); it != match_data.end(); ++it)
+//    {
+//        it->p1.tag = Database::gamerTagReplacements(gamertag_replacements, it->p1.tag).toLower();
+//        it->p1.name = Database::gamerTagReplacements(gamertag_replacements, it->p1.name);
+//        it->p2.tag = Database::gamerTagReplacements(gamertag_replacements, it->p2.tag).toLower();
+//        it->p2.name = Database::gamerTagReplacements(gamertag_replacements, it->p2.name);
+//    }
 }
 
 void ChallongeImporter::exportParticipants_p(

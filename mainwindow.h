@@ -6,6 +6,7 @@
 #include "database.h"
 #include "challongeimporter.h"
 #include "sessioneditwizard.h"
+#include "configparser.h"
 
 namespace Ui {
 class MainWindow;
@@ -16,7 +17,7 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    explicit MainWindow(QWidget *parent = 0);
+    explicit MainWindow(const QString& cfg_file, QWidget *parent = 0);
     ~MainWindow();
 
 private slots:
@@ -49,6 +50,9 @@ private:
 
     ChallongeImporter* m_challongeImporter;
     SessionEditWizard* m_sessionEditWizard;
+
+    const QString m_cfg_file;
+    ConfigParser m_cfgParser;
 };
 
 #endif // MAINWINDOW_H

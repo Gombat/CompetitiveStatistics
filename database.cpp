@@ -6,41 +6,31 @@
 #include <QDateTime>
 #include <QMessageBox>
 
+#include <iostream>
+
 Database::Database(QObject* parent)
  : QObject(parent)
 {
 }
 
-QString Database::playerNameReplacements(const QString& player_name)
+QString Database::gamerTagReplacements(const QMap<QString, QString> gamertag_replacements, const QString& player_name)
 {
-    if ( player_name.compare("Unmenschlich/Cookies", Qt::CaseInsensitive) == 0)
-        return "Cookies";
-    if ( player_name.compare("Phi/Stefan", Qt::CaseInsensitive) == 0)
-        return "phi";
-    if ( player_name.compare("Finalduck", Qt::CaseInsensitive) == 0)
-        return "Dods";
-    if ( player_name.compare("Finalducks", Qt::CaseInsensitive) == 0)
-        return "Dods";
-    if ( player_name.compare("csnipe", Qt::CaseInsensitive) == 0)
-        return "cSnipe";
-    if ( player_name.compare("affe!", Qt::CaseInsensitive) == 0)
-        return "affe";
-    if ( player_name.compare("Desselbigen Dods", Qt::CaseInsensitive) == 0)
-        return "Dods";
-    if ( player_name.compare("Angelos", Qt::CaseInsensitive) == 0)
-        return "Gosu";
+    if (gamertag_replacements.contains(player_name.toLower()))
+    {
+        std::cout << "Replacing " << player_name.toStdString() << " with " << gamertag_replacements[player_name.toLower()].toStdString() << std::endl;
+        return gamertag_replacements[player_name.toLower()];
+    }
     else
         return player_name;
 }
 
-QSqlDatabase& Database::db()
+QSqlDatabase& Database::db(const QString& db_path)
 {
     static QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
 
     if ( db.databaseName().isEmpty() )
     {
-        db.setDatabaseName(QApplication::instance()->applicationDirPath() +
-                           QDir::separator() + "stats.sqlite");
+        db.setDatabaseName(db_path);
     }
     qDebug() << db.databaseName();
     if( !db.open() )
@@ -53,8 +43,22 @@ QSqlDatabase& Database::db()
     return db;
 }
 
-void Database::initDB()
+void Database::initDB(const QString& cfg_file)
 {
+    QString db_path;
+    QFileInfo cfg_fileInfo(cfg_file);
+    if (cfg_file.isEmpty() || !cfg_fileInfo.exists())
+    {
+        db_path = QApplication::instance()->applicationDirPath() +
+                  QDir::separator() + "stats.sqlite";
+    }
+    else
+    {
+        db_path = cfg_fileInfo.absolutePath() +
+                  QDir::separator() + "stats.sqlite";
+    }
+    db(db_path); // init db filepath
+
     createTableConfig();
     createTablePlayers();
     createTableTournaments();
@@ -438,6 +442,9 @@ int Database::playerID( const QString& tag )
 
 bool Database::addPlayer( const QString& tag, const QString& name )
 {
+    if (tag.compare("angelos", Qt::CaseInsensitive) == 0)
+        std::cout << "addPlayer: " << tag.toStdString() << std::endl;
+
     if ( playerExists( tag ) ) { return false; }
 
     QSqlQuery query;
@@ -651,7 +658,7 @@ bool Database::addOrUpdateMatch(
     const int round,
     const quint32 suggested_play_order,
     const int p1_wins,
-    const int p2_wins )
+    const int p2_wins)
 {
     if ( !sessionExists(session_name) ){ addSession(session_name, session_tournament_id, challonge_id); }
     if ( !playerExists(p1_tag) ){ addPlayer(p1_tag, p1_name); }

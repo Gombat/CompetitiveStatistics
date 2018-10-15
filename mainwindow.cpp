@@ -8,11 +8,13 @@
 #include <QMessageBox>
 #include <QInputDialog>
 #include <fstream>
+#include <iostream>
 
-MainWindow::MainWindow(QWidget *parent)
+MainWindow::MainWindow(const QString& cfg_file, QWidget *parent)
  : QMainWindow(parent)
  , ui(new Ui::MainWindow)
  , m_challongeImporter(new ChallongeImporter(this))
+ , m_cfg_file(cfg_file)
 // , m_sessionEditWizard(0)
  {
     ui->setupUi(this);
@@ -26,48 +28,30 @@ MainWindow::MainWindow(QWidget *parent)
     createActions();
     createMenu();
 
-    Database::initDB();
+    Database::initDB(cfg_file);
 
-    // testing
-    QString path = "C:/Users/Micha/workspace/Smash/CompitetiveStatistics/challonge/";
+    if (!m_cfgParser.load(m_cfg_file))
+        std::cout << "Could not load Config:" << m_cfgParser.lastError().toStdString() << std::endl;
+    else
+    {
+        for ( auto session : Database::sessions())
+            Database::deleteSession(session);
 
-//    m_challongeImporter->importFile( path + "dd62_amateur.json", "dd62" );
-//    m_challongeImporter->importFile( path + "dd62_pool_redfield.json", "dd62" );
-//    m_challongeImporter->importFile( path + "dd62_pool_wesker.json", "dd62" );
-//    m_challongeImporter->importFile( path + "dd62_pro.json", "dd62" );
+        const QMap<QString, QString>& gamerTagReplacements = m_cfgParser.gamerTagReplacements();
+        const QMap<QString, QVector<QString> >& weeklies = m_cfgParser.weeklies();
+        for (auto weekly = weeklies.begin(); weekly != weeklies.end(); ++weekly)
+        {
+            for (auto file : weekly.value())
+            {
+                m_challongeImporter->importFile( file, weekly.key(), gamerTagReplacements );
+            }
+        }
+    }
 
-//    m_challongeImporter->importFile( path + "dd63_amateur.json", "dd63" );
-//    m_challongeImporter->importFile( path + "dd63_cyclops.json", "dd63" );
-//    m_challongeImporter->importFile( path + "dd63_pro.json", "dd63" );
-//    m_challongeImporter->importFile( path + "dd63_wolverine.json", "dd63" );
-
-//    m_challongeImporter->importFile( path + "dd64_pro.json", "dd64" );
-
-//    m_challongeImporter->importFile( path + "dd65_AmA.json", "dd65" );
-//    m_challongeImporter->importFile( path + "dd65_Knochentrocken.json", "dd65" );
-//    m_challongeImporter->importFile( path + "dd65_pro.json", "dd65" );
-//    m_challongeImporter->importFile( path + "dd65_SuperGoomba.json", "dd65" );
-
-//    m_challongeImporter->importFile( path + "dd66_singles.json", "dd66" );
-
-//    m_challongeImporter->importFile( path + "dd67_ama.json", "dd67" );
-//    m_challongeImporter->importFile( path + "dd67_pools_pro.json", "dd67" );
-
-//    m_challongeImporter->importFile( path + "dd68_Amateur.json", "dd68" );
-//    m_challongeImporter->importFile( path + "dd68_buuhuu.json", "dd68" );
-//    m_challongeImporter->importFile( path + "dd68_gkoopa.json", "dd68" );
-//    m_challongeImporter->importFile( path + "dd68_knochentrocken.json", "dd68" );
-//    m_challongeImporter->importFile( path + "dd68_pro.json", "dd68" );
-//    m_challongeImporter->importFile( path + "dd68_womp.json", "dd68" );
-
-    //QStringList test = Database::sessions();
-    //ui->comboBoxSession->addItem("new Session...");
+    ui->comboBoxSession->addItem("new Session...");
     ui->comboBoxSession->addItems(Database::sessions());
 
     updateEloTable();
-
-//    if ( ui->comboBoxSession->count() > 0)
-//    { updateStandings(ui->comboBoxSession->currentText()); }
 }
 
 MainWindow::~MainWindow()
@@ -149,7 +133,7 @@ void MainWindow::importChallongeFile( const QString& file )
         }
     }
 
-    m_challongeImporter->import( text, session_tournament_name );
+    m_challongeImporter->import( text, session_tournament_name, m_cfgParser.gamerTagReplacements() );
 }
 
 void MainWindow::editSession_p(const QString& session_name)

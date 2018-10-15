@@ -6,7 +6,7 @@
 
 #CONFIG     += debug
 
-QT       += core gui sql
+QT       += core gui sql xml
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -24,7 +24,8 @@ SOURCES += main.cpp\
     sessioneditpageplayers.cpp \
     sessioneditpagematches.cpp \
     sessioneditpageoverview.cpp \
-    data.cpp
+    data.cpp \
+    configparser.cpp
 
 HEADERS  += mainwindow.h \
     database.h \
@@ -34,7 +35,8 @@ HEADERS  += mainwindow.h \
     sessioneditpageplayers.h \
     sessioneditpagematches.h \
     sessioneditpageoverview.h \
-    data.h
+    data.h \
+    configparser.h
 
 FORMS    += mainwindow.ui
 

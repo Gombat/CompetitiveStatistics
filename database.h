@@ -16,11 +16,11 @@ public:
     Database(QObject* parent = NULL);
     virtual ~Database(){}
 
-    static QString playerNameReplacements(const QString& player_name);
+    static QString gamerTagReplacements(const QMap<QString, QString> gamertag_replacements, const QString& player_name);
 
-    static QSqlDatabase& db();
+    static QSqlDatabase& db(const QString& db_path = "");
 
-    static void initDB();
+    static void initDB(const QString& db_path);
 
     static bool tournamentExists( const QString& name );
     static QStringList tournaments( );
@@ -79,7 +79,7 @@ public:
                                   const int round,
                                   const quint32 suggested_play_order,
                                   const int p1_wins,
-                                  const int p2_wins );
+                                  const int p2_wins);
 
     static bool matchResults( const QString& p1_tag,
                               const QString& p2_tag,
